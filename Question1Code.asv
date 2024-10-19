@@ -177,6 +177,7 @@ tau = .01; %s
  kon = .05; %s^-1
  koff = .45; %s^-1
 
+
  %initialize protein array
  xloc = zeros(nsteps, nproteins);
  yloc = zeros(nsteps, nproteins);
@@ -379,7 +380,7 @@ avg_p_bound = mean(nonzeros(bound_mat))
 
 
 %% make Movie file
-writerObj = VideoWriter('test3.mp4', 'MPE'); %Attempt to create an mp4 file
+writerObj = VideoWriter('Question1pt5.mp4', 'MPEG-4'); %Attempt to create an mp4 file
 open(writerObj);
 for t= 1:counter
 
@@ -396,12 +397,13 @@ close(writerObj);
 
   kon_outside = .05; %1/s
   kon_inside = 4.5; %1/s
-
+ Dfree = .1; %s^-1
+ tau = .01; %s
 
 
 %initialize the problem
 %diff-rxn parameters
-tau = .01; %s
+
 
  koff = .45; %s^-1
 
@@ -424,8 +426,11 @@ tau = .01; %s
  ysteps = normrnd(0, sigmaStep,nsteps,nproteins);
 
 
+ %to check diffusion's effects
+    D_free_vals = [100, 10, 1, .1, .01, .001, .0001];
+for Dfree = D_free_vals
  %now simulate
-
+sigmaStep = sqrt(2*Dfree*tau);
    for i = 2:nsteps
      
 
@@ -482,35 +487,179 @@ tau = .01; %s
 
   end  
   
-  if mod(i,10) == 0
-      
-         figure(3)
-     hold off;
-    subplot(1,2,1);
-    plot(xloc(i, BoundLog(i,:) == 0), yloc(i, BoundLog(i,:) == 0), 'or',xloc(i, BoundLog(i,:) == 1), yloc(i, BoundLog(i,:) == 1), 'ob', 'LineWidth', 6);
-    % plot([4,4],[-2,2], 'r')
-    % plot([-4,-4],[-2,2], 'r')
-    % plot([4,-4],[2,2], 'r')
-    % plot([4,-4],[-2,-2], 'r')
-    xlabel('x (um)')
-    ylabel('y (um)')
-    legend("Free","Bound")
-    title('Question 1.6')
-    
-    subplot(1,2,2); 
-    histogram(xloc(i,:),8/.5)
-    xlabel('x (um)')
-    ylabel('number of particles')
-    title(['t = ' num2str(tau*i)]);
+  % if mod(i,10) == 0
+  % 
+  %        figure(3)
+  %    hold off;
+  %   subplot(1,2,1);
+  %   plot(xloc(i, BoundLog(i,:) == 0), yloc(i, BoundLog(i,:) == 0), 'or',xloc(i, BoundLog(i,:) == 1), yloc(i, BoundLog(i,:) == 1), 'ob', 'LineWidth', 6);
+  %   % plot([4,4],[-2,2], 'r')
+  %   % plot([-4,-4],[-2,2], 'r')
+  %   % plot([4,-4],[2,2], 'r')
+  %   % plot([4,-4],[-2,-2], 'r')
+  %   xlabel('x (um)')
+  %   ylabel('y (um)')
+  %   legend("Free","Bound")
+  %   title('Question 1.6')
+  % 
+  %   subplot(1,2,2); 
+  %   histogram(xloc(i
+  % ,:),8/.5)
+  %   xlabel('x (um)')
+  %   ylabel('number of particles')
+  %   title(['t = ' num2str(tau*i)]);
+  % 
+  % 
+  %   pause(.01)
+  % 
 
-
-    pause(.01)
-    
-
-  end
+  % end
 
   
+   end
+
+   %plot Dfree comparisons
+   figure(8);
+   hold on; 
+   plot((1:nsteps)*delta_tau, sum(xloc(:,:) < .5 & xloc(:,:) > -.5 & BoundLog(:,:) == 1, 2),)
+
+end
+
+   %% 
+   title("number of bound proteins in region over time")
+    xlabel("time (s)"); 
+    ylabel("number of proteins bound to dna")
+    legend("100", "10", "1", ".1", ".01", ".001")
+
+
+
+ %% 1.6 Jacquin's version
+
+ %variables
+k_on = .05;
+k_off = .45;
+k_damage = 4.5;
+f_bound = k_on/(k_on+k_off);
+D_free = 1;
+mu = 0;
+delta_tau = .01;
+n = 3000;
+num_proteins = 500;
+sigma = sqrt(2*D_free*delta_tau);
+time = [0:.01:n*delta_tau-delta_tau];
+rand_vect_x = normrnd(mu, sigma, [num_proteins,n]);
+rand_vect_y = normrnd(mu, sigma, [num_proteins,n]);
+X = zeros(num_proteins,n);
+Y = zeros(num_proteins,n);
+X(:,1) = -4 + (4-(-4)).*rand(num_proteins,1);
+Y(:,1) = -2 + (2-(-2)).*rand(num_proteins,1);
+MSD = zeros(num_proteins,n);
+fit = zeros(num_proteins,1);
+rand_vect_state = rand(num_proteins,n);
+state_mat = zeros(num_proteins,n);
+state_mat(:,1)= rand(num_proteins,1) < f_bound;
+
+% diffusion simulation
+P_bound = 1 - exp(-k_on*delta_tau);
+P_unbound = 1 - exp(-k_off*delta_tau);
+P_damage = 1 - exp(-k_damage*delta_tau);
+for i = 1:num_proteins
+   state = state_mat(i,1);
+   for iter = 2:n
+       if state == 0
+           if X(i, iter-1) >= -.5 && X(i, iter-1) <= .5
+               P_on = P_damage;
+           else
+               P_on = P_bound;
+           end
+           if rand_vect_state(i, iter) < P_on
+               Y(i,iter) = Y(i,iter-1);
+               X(i,iter) = X(i,iter-1);
+               state = 1;
+           else
+               Y(i,iter) = Y(i,iter-1)+rand_vect_y(i,iter);
+               X(i,iter) = X(i,iter-1)+rand_vect_x(i,iter);
+               if Y(i,iter) > 2
+                   Y(i,iter) = Y(i,iter-1)-rand_vect_y(i,iter);
+               elseif Y(i,iter) < -2
+                   Y(i,iter) = Y(i,iter-1)-rand_vect_y(i,iter);
+               end
+               if X(i,iter) > 4
+                   X(i,iter) = X(i,iter-1)-rand_vect_x(i,iter);
+               elseif X(i,iter) < -4
+                   X(i,iter) = X(i,iter-1)-rand_vect_x(i,iter);
+               end
+           end
+       else
+           if rand_vect_state(i,iter) < P_unbound
+               Y(i,iter) = Y(i,iter-1)+rand_vect_y(i,iter);
+               X(i,iter) = X(i,iter-1)+rand_vect_x(i,iter);
+               if Y(i,iter) > 2
+                   Y(i,iter) = Y(i,iter-1)-rand_vect_y(i,iter);
+               elseif Y(i,iter) < -2
+                   Y(i,iter) = Y(i,iter-1)-rand_vect_y(i,iter);
+               end
+               if X(i,iter) > 4
+                   X(i,iter) = X(i,iter-1)-rand_vect_x(i,iter);
+               elseif X(iter) < -4
+                   X(i,iter) = X(i,iter-1)-rand_vect_x(i,iter);
+               end
+               state = 0;
+           else
+               Y(i,iter) = Y(i,iter-1);
+               X(i,iter) = X(i,iter-1);
+           end
+       end
+       state_mat(i,iter) = state;
+       MSD(i,iter) = (X(i,iter)-X(i,1)).^2+(Y(i,iter)-Y(i,1)).^2; 
+   end   
+end
+
+% plot movie
+bound_mat = zeros(n, 1);
+figure('Position', [100 300 1500 500])
+counter = 1; 
+for t = 1:10:n
+   clf
+   subplot(1,2,1)
+   hold on
+   plot(X(:,t), Y(:,t), 'r.')
+   plot(X(state_mat(:,t)==1, t), Y(state_mat(:,t)==1, t), 'b.')
+   plot([4,4],[-2,2], 'k')
+   plot([-4,-4],[-2,2], 'k')
+   plot([4,-4],[2,2], 'k')
+   plot([4,-4],[-2,-2], 'k')
+   xlabel('X (um)')
+   ylabel('Y (um)')
+   title('XY Plane Position of 500 Simulated Protein in Nucleus at t')
+   xlim([-4.5 4.5])
+   ylim([-2.5 2.5])
+   legend('State = free', 'State = bound')
+   hold off
+  
+   subplot(1,2,2)
+   histogram(X(:,t), 16)
+   ylim([0,250])
+   xlim([-4,4])
+   ylabel('Number of Partices')
+   xlabel('Free (0) or Bound (1)')
+   title('Particle Density of Proteins Along X-Axis')
+   F(counter) = getframe(gcf);
+   pause(0.001)
  end
+avg_p_bound = mean(nonzeros(bound_mat));
+
+%% make Movie file
+writerObj = VideoWriter('Question1pt6.mp4', 'MPEG-4'); %Attempt to create an mp4 file
+open(writerObj);
+for t= 1:counter
+
+    writeVideo(writerObj,F(t))
+
+end
+
+close(writerObj);
+
 
 
  %% Functions 

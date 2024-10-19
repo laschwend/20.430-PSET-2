@@ -177,6 +177,7 @@ tau = .01; %s
  kon = .05; %s^-1
  koff = .45; %s^-1
 
+
  %initialize protein array
  xloc = zeros(nsteps, nproteins);
  yloc = zeros(nsteps, nproteins);
@@ -396,12 +397,14 @@ close(writerObj);
 
   kon_outside = .05; %1/s
   kon_inside = 4.5; %1/s
+ Dfree = .1; %s^-1
+ tau = .01; %s
 
-
-
+   D_free_vals = [100, 10, 1, .1, .01, .001, .0001];
+for Dfree = D_free_vals
 %initialize the problem
 %diff-rxn parameters
-tau = .01; %s
+
 
  koff = .45; %s^-1
 
@@ -424,8 +427,10 @@ tau = .01; %s
  ysteps = normrnd(0, sigmaStep,nsteps,nproteins);
 
 
+ %to check diffusion's effects
+ 
  %now simulate
-
+sigmaStep = sqrt(2*Dfree*tau);
    for i = 2:nsteps
      
 
@@ -482,35 +487,52 @@ tau = .01; %s
 
   end  
   
-  if mod(i,10) == 0
-      
-         figure(3)
-     hold off;
-    subplot(1,2,1);
-    plot(xloc(i, BoundLog(i,:) == 0), yloc(i, BoundLog(i,:) == 0), 'or',xloc(i, BoundLog(i,:) == 1), yloc(i, BoundLog(i,:) == 1), 'ob', 'LineWidth', 6);
-    % plot([4,4],[-2,2], 'r')
-    % plot([-4,-4],[-2,2], 'r')
-    % plot([4,-4],[2,2], 'r')
-    % plot([4,-4],[-2,-2], 'r')
-    xlabel('x (um)')
-    ylabel('y (um)')
-    legend("Free","Bound")
-    title('Question 1.6')
-    
-    subplot(1,2,2); 
-    histogram(xloc(i,:),8/.5)
-    xlabel('x (um)')
-    ylabel('number of particles')
-    title(['t = ' num2str(tau*i)]);
+  % if mod(i,10) == 0
+  % 
+  %        figure(3)
+  %    hold off;
+  %   subplot(1,2,1);
+  %   plot(xloc(i, BoundLog(i,:) == 0), yloc(i, BoundLog(i,:) == 0), 'or',xloc(i, BoundLog(i,:) == 1), yloc(i, BoundLog(i,:) == 1), 'ob', 'LineWidth', 6);
+  %   % plot([4,4],[-2,2], 'r')
+  %   % plot([-4,-4],[-2,2], 'r')
+  %   % plot([4,-4],[2,2], 'r')
+  %   % plot([4,-4],[-2,-2], 'r')
+  %   xlabel('x (um)')
+  %   ylabel('y (um)')
+  %   legend("Free","Bound")
+  %   title('Question 1.6')
+  % 
+  %   subplot(1,2,2); 
+  %   histogram(xloc(i
+  % ,:),8/.5)
+  %   xlabel('x (um)')
+  %   ylabel('number of particles')
+  %   title(['t = ' num2str(tau*i)]);
+  % 
+  % 
+  %   pause(.01)
+  % 
 
-
-    pause(.01)
-    
-
-  end
+  % end
 
   
- end
+   end
+
+   %plot Dfree comparisons
+   figure(8);
+   hold on; 
+   plot((1:nsteps)*delta_tau, sum(xloc(:,:) < .5 & xloc(:,:) > -.5 & BoundLog(:,:) == 1, 2))
+
+end
+
+   %% 
+   title("number of bound proteins in region over time")
+    xlabel("time (s)"); 
+    ylabel("number of proteins bound to dna")
+    legend("D = 100", "D = 10", "D = 1", "D = .1", "D = .01", "D = .001", "D = .0001")
+    set(gca, 'FontSize', 12)
+
+
 
  %% 1.6 Jacquin's version
 
@@ -523,7 +545,7 @@ D_free = 1;
 mu = 0;
 delta_tau = .01;
 n = 3000;
-num_proteins = 500;
+num_proteins = 1000;
 sigma = sqrt(2*D_free*delta_tau);
 time = [0:.01:n*delta_tau-delta_tau];
 rand_vect_x = normrnd(mu, sigma, [num_proteins,n]);
@@ -610,7 +632,7 @@ for t = 1:10:n
    plot([4,-4],[-2,-2], 'k')
    xlabel('X (um)')
    ylabel('Y (um)')
-   title('XY Plane Position of 500 Simulated Protein in Nucleus at t')
+   title('XY Plane Position of 1000 Simulated Protein in Nucleus at t')
    xlim([-4.5 4.5])
    ylim([-2.5 2.5])
    legend('State = free', 'State = bound')
